@@ -35,7 +35,7 @@ export default function LoginScreen({
                         </div>
                     )}
                 </GlassCard>
-                <p className="mt-6 text-[11px] font-bold text-slate-400">Bản quyền PC Hà Tĩnh - EVNNPC</p>
+                <p className="mt-6 text-[11px] font-bold text-slate-400">PC Hà Tĩnh - EVNNPC</p>
             </div>
         </div>
     );

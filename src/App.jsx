@@ -253,6 +253,8 @@ export default function App() {
     const [isTyping, setIsTyping] = useState(false);
     const [citations, setCitations] = useState([]);
     const [selectedModel, setSelectedModel] = useState('kimi-k2.5-free');
+    const [aiStatus, setAiStatus] = useState('checking');
+    const [aiHint, setAiHint] = useState('');
 
     const fetchServerHistory = async () => {
         try {
@@ -271,6 +273,14 @@ export default function App() {
         const init = async () => {
             const health = await HealthAPI.check();
             setBackendStatus(health.status === 'ok' ? 'online' : 'offline');
+            if (health.status === 'ok') {
+                const aiReady = !!health?.env?.hasAI;
+                setAiStatus(aiReady ? 'online' : 'fallback');
+                setAiHint(aiReady ? '' : 'AI đang ở chế độ dự phòng do thiếu AI_API_KEY trên server.');
+            } else {
+                setAiStatus('offline');
+                setAiHint('Backend chưa kết nối, không thể tra cứu AI.');
+            }
 
             try {
                 const priceConfig = await PriceAPI.getConfig();
@@ -474,10 +484,19 @@ export default function App() {
 
         try {
             const result = await AIService.searchLegal(currentQuery, selectedModel);
-            setMessages(prev => [...prev, { role: 'assistant', content: result }]);
-            setCitations(LEGAL_DOCS.filter(doc => doc.keywords.some(k => result.toLowerCase().includes(k.toLowerCase()) || currentQuery.toLowerCase().includes(k.toLowerCase()))));
+            setMessages(prev => [...prev, { role: 'assistant', content: result.content }]);
+            if (result.fallback) {
+                setAiStatus('fallback');
+                setAiHint('AI upstream lỗi hoặc thiếu khóa, đang trả lời dự phòng.');
+            } else {
+                setAiStatus('online');
+                setAiHint('');
+            }
+            setCitations(LEGAL_DOCS.filter(doc => doc.keywords.some(k => result.content.toLowerCase().includes(k.toLowerCase()) || currentQuery.toLowerCase().includes(k.toLowerCase()))));
         } catch (err) {
             console.error('AI Error:', err);
+            setAiStatus('offline');
+            setAiHint('Tra cứu AI lỗi kết nối. Vui lòng thử lại sau.');
             setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Lỗi kết nối AI: ${err.response?.data?.error || err.message}. Vui lòng thử lại hoặc chọn model khác.` }]);
         }
         finally { setIsTyping(false); }
@@ -681,7 +700,12 @@ export default function App() {
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-14 h-14 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl"><Sparkles size={28} /></div>
-                                    <div><h2 className="text-2xl font-black font-outfit text-slate-800">Cố vấn Pháp lý</h2><p className="text-[10px] text-emerald-500 font-black uppercase">● AI Online</p></div>
+                                    <div>
+                                        <h2 className="text-2xl font-black font-outfit text-slate-800">Cố vấn Pháp lý</h2>
+                                        <p className={`text-[10px] font-black uppercase ${aiStatus === 'online' ? 'text-emerald-500' : aiStatus === 'fallback' ? 'text-amber-500' : 'text-rose-500'}`}>
+                                            ● {aiStatus === 'online' ? 'AI Online' : aiStatus === 'fallback' ? 'AI Dự phòng' : 'AI Offline'}
+                                        </p>
+                                    </div>
                                 </div>
                                 <select value={selectedModel} onChange={e => setSelectedModel(e.target.value)} className="bg-white border border-slate-100 rounded-xl px-3 py-2 text-xs font-black">
                                     <option value="kimi-k2.5-free">Kimi K2.5</option>
@@ -690,6 +714,11 @@ export default function App() {
                                     <option value="glm-4.7-free">GLM-4.7</option>
                                 </select>
                             </div>
+                            {aiHint && (
+                                <div className="mb-4 bg-amber-50 border border-amber-100 text-amber-700 text-[11px] font-bold rounded-xl px-4 py-3">
+                                    {aiHint}
+                                </div>
+                            )}
                             <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-10">
                                 {messages.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-6"><div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-inner"><Search size={40} className="text-indigo-400" /></div><p className="font-black text-xs uppercase tracking-[0.3em]">Hỏi bất cứ điều gì về Luật điện lực</p></div>
@@ -775,7 +804,7 @@ export default function App() {
                 </AnimatePresence>
             </main>
 
-            <p className="text-center text-[10px] font-bold text-slate-400 pb-24">Bản quyền PC Hà Tĩnh - EVNNPC</p>
+            <p className="text-center text-[10px] font-bold text-slate-400 pb-24">PC Hà Tĩnh - EVNNPC</p>
 
             <BottomNav activeTab={activeTab} currentUser={currentUser} onTabChange={setActiveTab} />
         </div>
