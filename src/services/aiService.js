@@ -15,9 +15,13 @@ export const AIService = {
         } catch (proxyError) {
             console.warn('Backend proxy failed, trying direct:', proxyError.message);
 
-            // Fallback to direct API (may fail due to CORS)
+            // Fallback to direct API (may fail due to CORS if not proxied)
             try {
-                const directResponse = await axios.post('https://opencode.ai/zen/v1/chat/completions', {
+                const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? '/ai-api/zen/v1/chat/completions'
+                    : 'https://opencode.ai/zen/v1/chat/completions';
+
+                const directResponse = await axios.post(endpoint, {
                     model,
                     messages: [
                         {
@@ -27,8 +31,11 @@ export const AIService = {
                             1. Luật Điện lực 2024 (61/2024/QH15) - Hiệu lực từ 01/02/2025.
                             2. Thông tư 60/2025/TT-BCT - Quy định về giá bán điện 2025.
                             3. Quyết định 1279/QĐ-BCT - Biểu giá bán lẻ điện 2025.
+                            4. Thông tư 42/2022/TT-BCT - Kiểm tra hoạt động điện lực.
+                            5. Nghị định 17/2022/NĐ-CP - Xử phạt vi phạm hành chính điện lực.
                             
-                            Hãy trả lời ngắn gọn, chính xác và trích dẫn văn bản phù hợp.`
+                            Hãy trả lời ngắn gọn, chính xác và trích dẫn văn bản phù hợp. 
+                            Nếu không biết chắc chắn, hãy yêu cầu người dùng kiểm tra lại văn bản gốc.`
                         },
                         { role: "user", content: query }
                     ],
@@ -42,7 +49,8 @@ export const AIService = {
 
                 return directResponse.data.choices[0].message.content;
             } catch (directError) {
-                throw proxyError; // Return original error
+                console.error('Direct fallback failed:', directError.message);
+                throw new Error('Network Error: Không thể kết nối đến AI Server. Vui lòng kiểm tra lại kết nối mạng hoặc server.'); // Throw meaningful error
             }
         }
     }

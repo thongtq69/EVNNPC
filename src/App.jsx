@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Calculator, Search, BookOpen, History as HistoryIcon, ChevronRight, Zap, ShieldCheck, Send, Sparkles, FileText, LayoutGrid, Plus, Trash2, Lock, User, LogOut, Calendar, ExternalLink, ChevronDown, Activity, Clock, ArrowRight, RotateCcw, FileCode, X, Edit3, Save, DollarSign, Settings, Wifi, WifiOff, AlertTriangle
+    Calculator, Search, BookOpen, History as HistoryIcon, ChevronRight, Zap, ShieldCheck, Send, Sparkles, FileText, LayoutGrid, Plus, Trash2, Lock, User, LogOut, Calendar, ExternalLink, ChevronDown, Activity, Clock, ArrowRight, RotateCcw, FileCode, X, Edit3, Save, DollarSign, Settings, Wifi, WifiOff, AlertTriangle, UserPlus, Users, Key, Shield, ShieldAlert
 } from 'lucide-react';
 import { ElectricityCalculationService, PRICE_PERIODS, DEFAULT_PRICES } from './services/calculationService';
 import { AIService } from './services/aiService';
-import { AuthAPI, CalculationAPI, HealthAPI } from './services/api';
+import { AuthAPI, CalculationAPI, HealthAPI, AdminAPI } from './services/api';
 
 // --- Constants ---
 const AUTH_KEY = 'truythu_auth';
@@ -170,6 +170,48 @@ export default function App() {
     const [backendStatus, setBackendStatus] = useState('checking');
     const [showPriceModal, setShowPriceModal] = useState(false);
     const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
+
+    // Admin State
+    const [adminUsers, setAdminUsers] = useState([]);
+    const [adminLoading, setAdminLoading] = useState(false);
+    const [newUsername, setNewUsername] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [newRole, setNewRole] = useState('user');
+
+    const fetchAdminUsers = async () => {
+        try {
+            setAdminLoading(true);
+            const data = await AdminAPI.getUsers();
+            setAdminUsers(data);
+        } catch (err) {
+            console.error('Fetch users error:', err);
+        } finally {
+            setAdminLoading(false);
+        }
+    };
+
+    const handleCreateUser = async () => {
+        if (!newUsername || !newPassword) {
+            alert('Vui lòng nhập đầy đủ thông tin');
+            return;
+        }
+        try {
+            await AdminAPI.createUser({ username: newUsername, password: newPassword, role: newRole });
+            alert('Đã tạo tài khoản ' + newUsername);
+            setNewUsername('');
+            setNewPassword('');
+            setNewRole('user');
+            fetchAdminUsers();
+        } catch (error) {
+            alert(error.response?.data?.error || 'Không thể tạo người dùng');
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'admin' && currentUser?.role === 'admin') {
+            fetchAdminUsers();
+        }
+    }, [activeTab, currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Mode & Period
     const [calcMode, setCalcMode] = useState('single');
@@ -593,6 +635,13 @@ export default function App() {
                                 {citations.length > 0 && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-8"><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><BookOpen size={14} /> Cơ sở trích dẫn</p><div className="grid gap-3">{citations.map(c => <div key={c.id} className="bg-white/80 p-5 rounded-[2rem] border border-slate-100 flex items-center gap-5"><div className={`w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${c.color}`}><c.icon size={22} /></div><div className="flex-1"><p className="font-black text-slate-800 text-xs">{c.name}</p><p className="text-[9px] font-bold text-slate-400 uppercase">{c.sub}</p></div><ExternalLink size={16} className="text-slate-200" /></div>)}</div></motion.div>}
                             </div>
                             <form onSubmit={handleSearch} className="relative mt-4"><input type="text" placeholder="Hỏi về Luật điện lực 2024..." value={query} onChange={e => setQuery(e.target.value)} className="w-full bg-white/80 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 pr-20 shadow-2xl outline-none focus:ring-4 focus:ring-indigo-600/10 font-bold" /><button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center"><Send size={24} /></button></form>
+
+                            <div className="mt-8 space-y-4 pb-8">
+                                <div className="flex items-center gap-2 mb-4"><BookOpen size={18} className="text-indigo-500" /><h3 className="text-sm font-black text-slate-700 uppercase">Danh mục văn bản hỗ trợ</h3></div>
+                                <div className="grid gap-3">
+                                    {LEGAL_DOCS.map(doc => <GlassCard key={doc.id} className="p-4 group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${doc.color} group-hover:scale-110 transition-transform`}><doc.icon size={24} /></div><div className="flex-1"><p className="font-black text-slate-800 text-sm">{doc.name}</p><p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{doc.sub}</p></div><ExternalLink size={20} className="text-slate-200 group-hover:text-indigo-200" /></div></GlassCard>)}
+                                </div>
+                            </div>
                         </motion.div>
                     )}
 
@@ -607,20 +656,72 @@ export default function App() {
                         </motion.div>
                     )}
 
-                    {activeTab === 'legal' && (
-                        <motion.div key="legal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                            <h2 className="text-2xl font-black font-outfit text-slate-800">Thư viện Chính sách</h2>
-                            <div className="grid gap-5">{LEGAL_DOCS.map(doc => <GlassCard key={doc.id} className="p-6 group"><div className="flex items-center gap-6"><div className={`w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center ${doc.color} group-hover:scale-110 transition-transform`}><doc.icon size={30} /></div><div className="flex-1"><p className="font-black text-slate-800 text-base">{doc.name}</p><p className="text-[11px] font-black text-slate-400 tracking-widest uppercase mb-2">{doc.sub}</p><div className="flex items-center gap-4"><button className="flex items-center gap-1.5 text-indigo-600 text-[10px] font-black uppercase hover:underline"><FileText size={14} /> PDF</button><button className="flex items-center gap-1.5 text-emerald-600 text-[10px] font-black uppercase hover:underline"><ArrowRight size={14} /> Tóm tắt</button></div></div><ChevronRight size={24} className="text-slate-100 group-hover:text-indigo-200" /></div></GlassCard>)}</div>
+                    {activeTab === 'admin' && currentUser?.role === 'admin' && (
+                        <motion.div key="admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+                            <h2 className="text-2xl font-black font-outfit text-slate-800">Quản lý hệ thống</h2>
+
+                            <GlassCard className="p-6 space-y-4">
+                                <div className="flex items-center gap-2 mb-2"><UserPlus size={18} className="text-indigo-500" /><h3 className="text-sm font-black text-slate-700 uppercase">Tạo tài khoản mới</h3></div>
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Tên đăng nhập</label>
+                                        <input type="text" placeholder="Ví dụ: nhanvien01" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="w-full bg-white rounded-xl p-3.5 text-sm font-bold border border-slate-100 shadow-sm outline-none focus:ring-1 focus:ring-indigo-500" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Mật khẩu</label>
+                                        <div className="relative">
+                                            <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input type="password" placeholder="Nhập mật khẩu" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white rounded-xl p-3.5 pl-10 text-sm font-bold border border-slate-100 shadow-sm outline-none focus:ring-1 focus:ring-indigo-500" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Vai trò</label>
+                                        <div className="flex gap-4">
+                                            <button onClick={() => setNewRole('user')} className={`flex-1 p-3 rounded-xl font-bold text-sm border transition-all ${newRole === 'user' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-100'}`}>Nhân viên</button>
+                                            <button onClick={() => setNewRole('admin')} className={`flex-1 p-3 rounded-xl font-bold text-sm border transition-all ${newRole === 'admin' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-100'}`}>Quản trị viên</button>
+                                        </div>
+                                    </div>
+                                    <button onClick={handleCreateUser} className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg mt-2">THÊM TÀI KHOẢN</button>
+                                </div>
+                            </GlassCard>
+
+                            <GlassCard className="p-6">
+                                <div className="flex items-center gap-2 mb-4"><Users size={18} className="text-indigo-500" /><h3 className="text-sm font-black text-slate-700 uppercase">Danh sách người dùng</h3></div>
+                                {adminLoading ? (
+                                    <div className="flex justify-center p-8"><div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" /></div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {adminUsers.map(user => (
+                                            <div key={user._id || user.username} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user.role === 'admin' ? 'bg-amber-100 text-amber-500' : 'bg-indigo-100 text-indigo-500'}`}>
+                                                        {user.role === 'admin' ? <Shield size={18} /> : <User size={18} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-black text-slate-800 text-sm">{user.username}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{user.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</p>
+                                                    </div>
+                                                </div>
+                                                {user.username !== 'admin' && (
+                                                    <button className="p-2 text-rose-400 hover:text-rose-600 bg-white rounded-lg shadow-sm border border-slate-100"><Trash2 size={16} /></button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </GlassCard>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </main>
 
             <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-40px)] max-w-lg h-24 bg-white/80 backdrop-blur-2xl border border-white/50 flex items-center justify-around px-4 z-[100] rounded-[2.5rem] shadow-2xl shadow-indigo-100/50">
-                <NavItem icon={HistoryIcon} label="Lịch sử" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-                <NavItem icon={Calculator} label="Máy tính" active={activeTab === 'calc'} onClick={() => setActiveTab('calc')} />
+                <NavItem icon={Calculator} label="Tính toán" active={activeTab === 'calc'} onClick={() => setActiveTab('calc')} />
                 <NavItem icon={Search} label="Tra cứu" active={activeTab === 'search'} onClick={() => setActiveTab('search')} />
-                <NavItem icon={BookOpen} label="Hệ thống" active={activeTab === 'legal'} onClick={() => setActiveTab('legal')} />
+                <NavItem icon={HistoryIcon} label="Lịch sử" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+                {currentUser?.role === 'admin' && (
+                    <NavItem icon={ShieldAlert} label="Hệ thống" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />
+                )}
             </nav>
         </div>
     );

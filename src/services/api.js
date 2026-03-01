@@ -62,4 +62,15 @@ export const HealthAPI = {
     }
 };
 
+export const AdminAPI = {
+    async getUsers() {
+        const { data } = await api.get('/admin/users');
+        return data;
+    },
+    async createUser(userData) {
+        const { data } = await api.post('/admin/users', userData);
+        return data;
+    }
+};
+
 export default api;
