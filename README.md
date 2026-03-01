@@ -1,16 +1,48 @@
-# React + Vite
+# Truy Thu Dien - WebApp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web app giao dien va chuc nang dong bo voi mobile app: tinh truy thu dien, tra cuu phap ly AI, lich su tinh toan va quan tri he thong.
 
-Currently, two official plugins are available:
+## Chay local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Cai dependencies:
 
-## React Compiler
+```bash
+npm install
+```
 
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
+2. Tao file `.env` tu `.env.example`:
 
-## Expanding the ESLint configuration
+```bash
+cp .env.example .env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Chay dev:
+
+```bash
+npm run dev
+```
+
+## Bien moi truong
+
+- `VITE_API_BASE_URL`: dia chi backend API (mac dinh fallback la `https://electronic-b.vercel.app/api`).
+
+## Build production
+
+```bash
+npm run build
+```
+
+## Deploy Vercel
+
+- Du an da co `vercel.json` de rewrite SPA route ve `index.html`.
+- Truyen env `VITE_API_BASE_URL` tren Vercel Project Settings.
+- Deploy bang Vercel dashboard hoac CLI:
+
+```bash
+vercel --prod
+```
+
+## Login nhanh
+
+- Man hinh login co nut `Dang nhap nhanh` de vao dung ngay khong can tai khoan.
+- Cac tinh nang can token (luu lich su server, admin) se tu dong an trong guest mode.

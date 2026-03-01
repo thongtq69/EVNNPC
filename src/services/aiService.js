@@ -1,57 +1,26 @@
-import axios from 'axios';
-
-// Use backend proxy to avoid CORS issues
-const API_BASE = 'http://localhost:3000/api';
+import api from './api';
 
 export const AIService = {
     async searchLegal(query, model = "kimi-k2.5-free") {
-        try {
-            // Try backend proxy first (avoids CORS)
-            const response = await axios.post(`${API_BASE}/ai/search`, {
-                query,
-                model
-            });
-            return response.data.content;
-        } catch (proxyError) {
-            console.warn('Backend proxy failed, trying direct:', proxyError.message);
+        const candidates = [model, 'kimi-k2.5-free', 'glm-4.7-free'];
+        const tried = new Set();
 
-            // Fallback to direct API (may fail due to CORS if not proxied)
+        for (const candidate of candidates) {
+            if (!candidate || tried.has(candidate)) {
+                continue;
+            }
+            tried.add(candidate);
+
             try {
-                const endpoint = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                    ? '/ai-api/zen/v1/chat/completions'
-                    : 'https://opencode.ai/zen/v1/chat/completions';
-
-                const directResponse = await axios.post(endpoint, {
-                    model,
-                    messages: [
-                        {
-                            role: "system",
-                            content: `Bạn là trợ lý pháp lý chuyên nghiệp về lĩnh vực Điện lực tại Việt Nam. 
-                            Bạn có kiến thức về các văn bản sau:
-                            1. Luật Điện lực 2024 (61/2024/QH15) - Hiệu lực từ 01/02/2025.
-                            2. Thông tư 60/2025/TT-BCT - Quy định về giá bán điện 2025.
-                            3. Quyết định 1279/QĐ-BCT - Biểu giá bán lẻ điện 2025.
-                            4. Thông tư 42/2022/TT-BCT - Kiểm tra hoạt động điện lực.
-                            5. Nghị định 17/2022/NĐ-CP - Xử phạt vi phạm hành chính điện lực.
-                            
-                            Hãy trả lời ngắn gọn, chính xác và trích dẫn văn bản phù hợp. 
-                            Nếu không biết chắc chắn, hãy yêu cầu người dùng kiểm tra lại văn bản gốc.`
-                        },
-                        { role: "user", content: query }
-                    ],
-                    temperature: 0.7
-                }, {
-                    headers: {
-                        'Authorization': 'Bearer sk-mM80RgGgqWImVzTD1bozFFxQdUN5w6BCKyaVTiagmxr1ser19R8zRIwPdyT70e34',
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                return directResponse.data.choices[0].message.content;
-            } catch (directError) {
-                console.error('Direct fallback failed:', directError.message);
-                throw new Error('Network Error: Không thể kết nối đến AI Server. Vui lòng kiểm tra lại kết nối mạng hoặc server.'); // Throw meaningful error
+                const { data } = await api.post('/ai/search', { query, model: candidate });
+                if (data?.content) {
+                    return data.content;
+                }
+            } catch {
+                // Try next model
             }
         }
+
+        return 'Chưa thể kết nối máy chủ tra cứu AI ở thời điểm này. Bạn có thể đổi model hoặc thử lại sau ít phút.';
     }
 };

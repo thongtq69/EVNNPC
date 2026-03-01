@@ -2,17 +2,17 @@ export class ElectricityCalculationService {
     constructor(prices) {
         this.prices = {
             vatRate: prices.vat || 0.08,
-            donGiaSanXuat: prices.production || 1896,
-            donGiaKinhDoanh: prices.business || 3007,
-            donGiaHCSNBenhVien: prices.hcsn_hospital || 1977,
-            donGiaHCSNChieuSang: prices.hcsn_lighting || 2124,
+            donGiaSanXuat: prices.production || 1987,
+            donGiaKinhDoanh: prices.business || 3152,
+            donGiaHCSNBenhVien: prices.hcsn_hospital || 2072,
+            donGiaHCSNChieuSang: prices.hcsn_lighting || 2226,
             SinhHoatBacThang: {
-                bac1: { price: prices.tier1 || 1893 },
-                bac2: { price: prices.tier2 || 1956 },
-                bac3: { price: prices.tier3 || 2271 },
-                bac4: { price: prices.tier4 || 2860 },
-                bac5: { price: prices.tier5 || 3197 },
-                bac6: { price: prices.tier6 || 3302 }
+                bac1: { price: prices.tier1 || 1984 },
+                bac2: { price: prices.tier2 || 2050 },
+                bac3: { price: prices.tier3 || 2380 },
+                bac4: { price: prices.tier4 || 2998 },
+                bac5: { price: prices.tier5 || 3350 },
+                bac6: { price: prices.tier6 || 3460 }
             }
         };
     }
@@ -92,7 +92,7 @@ export class ElectricityCalculationService {
         if (soHo === 0) {
             const price = this.prices.SinhHoatBacThang.bac3.price;
             const tien = sanLuong * price;
-            const chiTietBac = [{ tenBac: "Bậc 3 (Không KK)", kWh: sanLuong, donGia: price, tien: tien }];
+            const chiTietBac = [{ tenBac: "KHÔNG KÊ KHAI (Giá bậc 3)", kWh: sanLuong, donGia: price, tien: tien }];
             return { tienTruocVAT: tien, tienVAT: tien * vatRate, chiTietBac };
         }
 
@@ -130,11 +130,11 @@ export const PRICE_PERIODS = {
 
 export const DEFAULT_PRICES = {
     'before_05_2025': {
-        tier1: 1893, tier2: 1956, tier3: 2271, tier4: 2860, tier5: 3197, tier6: 3302,
-        production: 1896, business: 3007, hcsn_hospital: 1977, hcsn_lighting: 2124, vat: 0.08
+        tier1: 1984, tier2: 2050, tier3: 2380, tier4: 2998, tier5: 3350, tier6: 3460,
+        production: 1987, business: 3152, hcsn_hospital: 2072, hcsn_lighting: 2226, vat: 0.08
     },
     'from_05_2025': {
-        tier1: 1893, tier2: 1956, tier3: 2271, tier4: 2860, tier5: 3197, tier6: 3302,
-        production: 1920, business: 3100, hcsn_hospital: 2000, hcsn_lighting: 2150, vat: 0.08
+        tier1: 1984, tier2: 2050, tier3: 2380, tier4: 2998, tier5: 3350, tier6: 3460,
+        production: 1987, business: 3152, hcsn_hospital: 2072, hcsn_lighting: 2226, vat: 0.08
     }
 };

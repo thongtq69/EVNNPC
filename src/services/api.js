@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:3000/api';
-
-let authToken = localStorage.getItem('truythu_token');
+const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const API_BASE = import.meta.env.VITE_API_BASE_URL || (isLocalHost ? 'http://localhost:3000/api' : 'https://electronic-b.vercel.app/api');
 
 const api = axios.create({
     baseURL: API_BASE,
@@ -59,6 +58,17 @@ export const HealthAPI = {
         } catch {
             return { status: 'offline' };
         }
+    }
+};
+
+export const PriceAPI = {
+    async getConfig() {
+        const { data } = await api.get('/prices');
+        return data;
+    },
+    async saveConfig(payload) {
+        const { data } = await api.put('/prices', payload);
+        return data;
     }
 };
 
