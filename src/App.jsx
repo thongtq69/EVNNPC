@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
     BookOpen, Calculator, History as HistoryIcon, Search, ShieldCheck, Send, Sparkles, FileText, LayoutGrid, Plus, Trash2, Lock, User, Calendar, ExternalLink, Activity, Clock, ArrowRight, RotateCcw, FileCode, X, Edit3, Save, AlertTriangle, UserPlus, Users, Key, Shield
@@ -255,6 +255,7 @@ export default function App() {
     const [selectedModel, setSelectedModel] = useState('kimi-k2.5-free');
     const [aiStatus, setAiStatus] = useState('checking');
     const [aiHint, setAiHint] = useState('');
+    const chatScrollRef = useRef(null);
 
     const fetchServerHistory = async () => {
         try {
@@ -315,6 +316,17 @@ export default function App() {
         };
         init();
     }, []);
+
+    useEffect(() => {
+        if (activeTab !== 'search') {
+            return;
+        }
+
+        const el = chatScrollRef.current;
+        if (el) {
+            el.scrollTop = el.scrollHeight;
+        }
+    }, [messages, isTyping, citations, activeTab]);
 
     const handleQuickLogin = () => {
         localStorage.setItem(AUTH_KEY, 'guest');
@@ -475,9 +487,13 @@ export default function App() {
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
-        if (!query.trim()) return;
-        setMessages(prev => [...prev, { role: 'user', content: query }]);
-        const currentQuery = query;
+        const currentQuery = query.trim();
+        if (currentQuery.length < 2) {
+            alert('Vui lòng nhập nội dung tra cứu dài hơn.');
+            return;
+        }
+
+        setMessages(prev => [...prev, { role: 'user', content: currentQuery }]);
         setQuery('');
         setIsTyping(true);
         setCitations([]);
@@ -487,7 +503,13 @@ export default function App() {
             setMessages(prev => [...prev, { role: 'assistant', content: result.content }]);
             if (result.fallback) {
                 setAiStatus('fallback');
-                setAiHint('AI upstream lỗi hoặc thiếu khóa, đang trả lời dự phòng.');
+                if (result.reason === 'invalid_api_key') {
+                    setAiHint('AI key trên backend không hợp lệ. Cần cập nhật AI_API_KEY trên Vercel backend.');
+                } else if (result.reason === 'missing_ai_key') {
+                    setAiHint('Backend chưa cấu hình AI_API_KEY nên đang trả lời dự phòng.');
+                } else {
+                    setAiHint('AI upstream đang lỗi/tạm quá tải, hệ thống chuyển sang chế độ dự phòng.');
+                }
             } else {
                 setAiStatus('online');
                 setAiHint('');
@@ -696,7 +718,7 @@ export default function App() {
                     )}
 
                     {activeTab === 'search' && (
-                        <div key="search" className="flex flex-col h-[calc(100vh-210px)]">
+                        <div key="search" className="flex flex-col gap-4">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="w-14 h-14 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl"><Sparkles size={28} /></div>
@@ -719,23 +741,31 @@ export default function App() {
                                     {aiHint}
                                 </div>
                             )}
-                            <div className="flex-1 overflow-y-auto space-y-6 pr-2 pb-10">
-                                {messages.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center opacity-30 text-center space-y-6"><div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-inner"><Search size={40} className="text-indigo-400" /></div><p className="font-black text-xs uppercase tracking-[0.3em]">Hỏi bất cứ điều gì về Luật điện lực</p></div>
-                                ) : (
-                                    messages.map((m, idx) => <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[90%] rounded-[2.2rem] p-6 shadow-sm ${m.role === 'user' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-100 text-slate-700'}`}><p className="text-[15px] leading-relaxed whitespace-pre-wrap">{m.content}</p></div></div>)
+                            <div ref={chatScrollRef} className="h-[42vh] min-h-[280px] overflow-y-auto space-y-4 pr-1 pb-2">
+                                {messages.length === 0 && (
+                                    <div className="h-full flex flex-col items-center justify-center opacity-35 text-center space-y-4">
+                                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-inner"><Search size={34} className="text-indigo-400" /></div>
+                                        <p className="font-black text-[11px] uppercase tracking-[0.2em]">Hỏi bất cứ điều gì về Luật điện lực</p>
+                                    </div>
                                 )}
+                                {messages.map((m, idx) => (
+                                    <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[85%] rounded-3xl px-5 py-4 shadow-sm ${m.role === 'user' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-100 text-slate-700'}`}>
+                                            <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{m.content}</p>
+                                        </div>
+                                    </div>
+                                ))}
                                 {isTyping && <div className="flex gap-2 p-4 bg-indigo-50 border border-indigo-100/50 rounded-2xl w-fit items-center"><div className="flex gap-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce" /><div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce delay-100" /><div className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-bounce delay-200" /></div><span className="text-[10px] font-black text-indigo-400 uppercase ml-1">AI đang xử lý...</span></div>}
-                                {citations.length > 0 && <div className="space-y-4 pt-8"><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><BookOpen size={14} /> Cơ sở trích dẫn</p><div className="grid gap-3">{citations.map(c => <div key={c.id} className="bg-white/80 p-5 rounded-[2rem] border border-slate-100 flex items-center gap-5"><div className={`w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${c.color}`}><c.icon size={22} /></div><div className="flex-1"><p className="font-black text-slate-800 text-xs">{c.name}</p><p className="text-[9px] font-bold text-slate-400 uppercase">{c.sub}</p></div><ExternalLink size={16} className="text-slate-200" /></div>)}</div></div>}
+                                {citations.length > 0 && <div className="space-y-3 pt-4"><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><BookOpen size={14} /> Cơ sở trích dẫn</p><div className="grid gap-2">{citations.map(c => <div key={c.id} className="bg-white/80 p-4 rounded-2xl border border-slate-100 flex items-center gap-4"><div className={`w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center ${c.color}`}><c.icon size={20} /></div><div className="flex-1"><p className="font-black text-slate-800 text-xs">{c.name}</p><p className="text-[9px] font-bold text-slate-400 uppercase">{c.sub}</p></div><ExternalLink size={14} className="text-slate-200" /></div>)}</div></div>}
                             </div>
-                            <form onSubmit={handleSearch} className="relative mt-4"><input type="text" placeholder="Hỏi về Luật điện lực 2024..." value={query} onChange={e => setQuery(e.target.value)} className="w-full bg-white/80 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-6 pr-20 shadow-2xl outline-none focus:ring-4 focus:ring-indigo-600/10 font-bold" /><button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center"><Send size={24} /></button></form>
+                            <form onSubmit={handleSearch} className="relative mt-1"><input type="text" placeholder="Hỏi về Luật điện lực 2024..." value={query} onChange={e => setQuery(e.target.value)} className="w-full bg-white/80 backdrop-blur-md border border-slate-200 rounded-[2.5rem] p-5 pr-20 shadow-2xl outline-none focus:ring-4 focus:ring-indigo-600/10 font-bold" /><button type="submit" disabled={isTyping || !query.trim()} className={`absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 text-white rounded-full shadow-xl flex items-center justify-center ${isTyping || !query.trim() ? 'bg-indigo-300' : 'bg-indigo-600'}`}><Send size={22} /></button></form>
 
-                            <div className="mt-8 space-y-4 pb-8">
+                            {messages.length === 0 && <div className="mt-6 space-y-4 pb-8">
                                 <div className="flex items-center gap-2 mb-4"><BookOpen size={18} className="text-indigo-500" /><h3 className="text-sm font-black text-slate-700 uppercase">Danh mục văn bản hỗ trợ</h3></div>
                                 <div className="grid gap-3">
                                     {LEGAL_DOCS.map(doc => <GlassCard key={doc.id} className="p-4 group"><div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${doc.color} group-hover:scale-110 transition-transform`}><doc.icon size={24} /></div><div className="flex-1"><p className="font-black text-slate-800 text-sm">{doc.name}</p><p className="text-[10px] font-black text-slate-400 tracking-widest uppercase">{doc.sub}</p></div><ExternalLink size={20} className="text-slate-200 group-hover:text-indigo-200" /></div></GlassCard>)}
                                 </div>
-                            </div>
+                            </div>}
                         </div>
                     )}
 
